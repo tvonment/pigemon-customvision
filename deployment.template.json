@@ -3,7 +3,7 @@
   "modulesContent": {
     "$edgeAgent": {
       "properties.desired": {
-        "schemaVersion": "1.4",
+        "schemaVersion": "1.1",
         "runtime": {
           "type": "docker",
           "settings": {
@@ -74,7 +74,7 @@
             "restartPolicy": "always",
             "settings": {
               "image": "${MODULES.cameraCapture}",
-              "createOptions": "{\"Env\":[\"IMAGE_PATH=test_image.png\",\"IMAGE_PROCESSING_ENDPOINT=http://classifier/image\"]}"
+              "createOptions": "{\"Env\":[\"IMAGE_PROCESSING_ENDPOINT=http://classifier/image\"]}"
             }
           }
         }
@@ -82,7 +82,7 @@
     },
     "$edgeHub": {
       "properties.desired": {
-        "schemaVersion": "1.4",
+        "schemaVersion": "1.2",
         "routes": {
           "cameraCaptureToIoTHub": "FROM /messages/modules/cameraCapture/outputs/* INTO $upstream"
         },

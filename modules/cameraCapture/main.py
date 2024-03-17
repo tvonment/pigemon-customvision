@@ -2,6 +2,7 @@
 # Licensed under the MIT license. See LICENSE file in the project root for
 # full license information.
 
+import random
 import time
 import sys
 import os
@@ -32,7 +33,23 @@ def sendFrameForProcessing(imagePath, imageProcessingEndpoint):
     with open(imagePath, mode="rb") as test_image:
         try:
             response = requests.post(imageProcessingEndpoint, headers = headers, data = test_image)
-            print("Response from classification service: (" + str(response.status_code) + ") " + json.dumps(response.json()) + "\n")
+            print("\nResponse from classification service: (" + str(response.status_code) + ") - " + imagePath)
+            #print("\n" + json.dumps(response.json()) + "\n")
+            data = response.json()
+            if data['predictions'] == []:
+                print("Nothing recognized in the image.")
+                return json.dumps({ "columbidae": False })
+            if data['predictions'] != []:
+                counter = 0
+                for prediction in data['predictions']:
+                    if prediction['tagName'] == "columbidae" and prediction['probability'] > 0.8:
+                         counter += 1
+                if counter > 0:
+                    print("Pigeon(s) recognized in the image.")
+                    return json.dumps({ "columbidae": True })
+                else:
+                    print("No Pigeons recognized in the image.")
+                    return json.dumps({ "columbidae": False })
         except Exception as e:
             print(e)
             print("No response from classification service")
@@ -40,10 +57,9 @@ def sendFrameForProcessing(imagePath, imageProcessingEndpoint):
 
     return json.dumps(response.json())
 
-def main(imagePath, imageProcessingEndpoint):
+def main(imageProcessingEndpoint):
     try:
         print ( "Simulated camera module for Azure IoT Edge. Press Ctrl-C to exit." )
-
         try:
             global CLIENT
             CLIENT = IoTHubModuleClient.create_from_edge_environment()
@@ -54,6 +70,7 @@ def main(imagePath, imageProcessingEndpoint):
         print ( "The sample is now sending images for processing and will indefinitely.")
 
         while True:
+            imagePath = random.choice(["test_image_pigeon.png", "test_image_nothing.png"])
             classification = sendFrameForProcessing(imagePath, imageProcessingEndpoint)
             if classification:
                 send_to_hub(classification)
@@ -65,13 +82,12 @@ def main(imagePath, imageProcessingEndpoint):
 if __name__ == '__main__':
     try:
         # Retrieve the image location and image classifying server endpoint from container environment
-        IMAGE_PATH = os.getenv('IMAGE_PATH', "")
         IMAGE_PROCESSING_ENDPOINT = os.getenv('IMAGE_PROCESSING_ENDPOINT', "")
     except ValueError as error:
         print ( error )
         sys.exit(1)
 
-    if ((IMAGE_PATH and IMAGE_PROCESSING_ENDPOINT) != ""):
-        main(IMAGE_PATH, IMAGE_PROCESSING_ENDPOINT)
+    if ((IMAGE_PROCESSING_ENDPOINT) != ""):
+        main(IMAGE_PROCESSING_ENDPOINT)
     else: 
-        print ( "Error: Image path or image-processing endpoint missing" )
+        print ( "Error: image-processing endpoint missing" )
